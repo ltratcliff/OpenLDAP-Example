@@ -4,8 +4,12 @@
 ```shell
 docker exec -it ldap /bin/bash
 ```
+## Interact with LDAP
 
-## Create OU (orgainaization Units).
+### Create OUs (orgainaization Units).
+
+Create a devops OU
+```shell
 ldapadd -x -w admin -D "cn=admin,dc=example,dc=in" << EOF
 # LDIF file to add organizational unit "ou=devops" under "dc=example,dc=in"
 dn: ou=devops,dc=example,dc=in
@@ -13,40 +17,49 @@ objectClass: organizationalUnit
 ou: devops
 
 EOF
+```
 
+Create an appdev OU
+```shell
 # LDIF file to add organizational unit "ou=appdev" under "dc=example,dc=in"
-# dn: ou=appdev,dc=example,dc=in
-# objectClass: organizationalUnit
-# ou: appdev
-# EOF
+ldapadd -x -w admin -D "cn=admin,dc=example,dc=in" << EOF
+dn: ou=appdev,dc=example,dc=in
+objectClass: organizationalUnit
+ou: appdev
 
-# Create User accounts.
+EOF
+```
+
+
+### Create User accounts.
+
+Create my account
+```shell
 ldapadd -x -w admin -D "cn=admin,dc=example,dc=in" << EOF
 # LDIF file to Create user "ltratcliff" in "ou=appdev" under "dc=example,dc=in"
-dn: cn=ltratcliff,ou=devops,dc=example,dc=in
+dn: cn=ltratcliff,ou=appdev,dc=example,dc=in
 objectClass: person
 cn: ltratcliff
 sn: Tom
 userPassword: Password1
 
 EOF
+```
 
-# LDIF file to Create user "charlie" in "ou=appdev" under "dc=example,dc=in"
-dn: cn=charlie,ou=appdev,dc=example,dc=in
+Create co-workers account
+```shell
+# LDIF file to Create user "dave" in "ou=devops" under "dc=example,dc=in"
+ldapadd -x -w admin -D "cn=admin,dc=example,dc=in" << EOF
+dn: cn=dave,ou=devops,dc=example,dc=in
 objectClass: inetOrgPerson
-cn: charlie
-sn: Charlie
-userPassword: Charlie@123
+cn: dave
+sn: Dave
+userPassword: Dave@123
+```
 
-# LDIF file to Create user "amit" in "ou=appdev" under "dc=example,dc=in"
-dn: cn=amit,ou=appdev,dc=example,dc=in
-objectClass: inetOrgPerson
-cn: amit
-sn: Amit
-userPassword: Amit@123
-EOF
 
-# Create Groups
+### Create Groups
+```shell
 ldapadd -x -w admin -D "cn=admin,dc=example,dc=in" << EOF
 # Group: appdev-team
 dn: cn=appdev-team,dc=example,dc=in
@@ -54,8 +67,8 @@ objectClass: top
 objectClass: groupOfNames
 cn: appdev-team
 description: App Development Team
-member: cn=ltratcliff,ou=devops,dc=example,dc=in
-member: cn=charlie,ou=appdev,dc=example,dc=in
+member: cn=ltratcliff,ou=appdev,dc=example,dc=in
+member: cn=dave,ou=devops,dc=example,dc=in
 
 # Group: devops-team
 dn: cn=devops-team,dc=example,dc=in
@@ -63,44 +76,58 @@ objectClass: top
 objectClass: groupOfNames
 cn: devops-team
 description: DevOps Team
-member: cn=amrutha,ou=devops,dc=example,dc=in
-member: cn=amit,ou=appdev,dc=example,dc=in
+member: cn=dave,ou=devops,dc=example,dc=in
 EOF
+```
 
-# Modify and apply MemberOf attribute to Users in Groups.
-ldapadd -x -w password -D "cn=admin,dc=example,dc=in" << EOF
-dn: cn=amrutha,ou=devops,dc=example,dc=in
+
+### Modify and apply MemberOf attribute to Users in Groups.
+```shell
+ldapadd -x -w admin -D "cn=admin,dc=example,dc=in" << EOF
+dn: cn=ltratcliff,ou=appdev,dc=example,dc=in
 changetype: modify
 add: memberOf
 memberOf: cn=devops-team,dc=example,dc=in
 
-dn: cn=amit,ou=appdev,dc=example,dc=in
-changetype: modify
-add: memberOf
-memberOf: cn=appdev-team,dc=example,dc=in
-
-dn: cn=charile,ou=appdev,dc=example,dc=in
-changetype: modify
-add: memberOf
-memberOf: cn=devops-team,dc=example,dc=in
 EOF
+```
 
 
-### Search
-# Searach for users with deafult admin
+
+## Search
+
+### Search from ldapsearch
+```shell
 ldapsearch -x -b dc=example,dc=in -D "cn=admin,dc=example,dc=in" -w admin -s sub "objectclass=*"
+```
 
-### Modify ACLs
-# Check oclAccess permission.
+### Search from python
+```python
+from ldap3 import Server, Connection, ALL
+
+server = Server('localhost', get_info=ALL)
+dn = "cn=ltratcliff, ou=devops, dc=example, dc=in"
+conn = Connection(server, dn, password='Password1', auto_bind=True)
+
+#conn.search('dc=example,dc=in', '(cn=*)', attributes=['*'])
+conn.search('dc=example,dc=in', '(cn=ltratcliff)', attributes=['*'])
+
+for entry in conn.entries:
+    print(entry)
+```
+
+## Modify ACLs
+Check oclAccess permission.
+```shell
 ldapsearch -Y EXTERNAL -Q -H ldapi:/// -LLL -o ldif-wrap=no -b cn=config '(objectClass=olcDatabaseConfig)' olcAccess
+```
 
-# Modification to grant read access to the user "ltratcliff"
+Modification to grant read access to the user "ltratcliff"
+```shell
 ldapmodify -H ldapi:/// -Y EXTERNAL << EOF
 dn: olcDatabase={1}mdb,cn=config
 changetype: modify
 add: olcAccess
 olcAccess: {2}to * by dn="cn=ltratcliff,ou=devops,dc=example,dc=in" read
 EOF
-
-# Searach for perticular user or attributes like cn,sn,groupOfNames and memberOf with Created LDAP admin
-ldapsearch -x -D "cn=ltratcliff,ou=devops,dc=example,dc=in" -w Password1 -b "dc=example,dc=in"
+```
