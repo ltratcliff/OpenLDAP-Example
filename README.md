@@ -24,9 +24,13 @@ EOF
 ldapadd -x -w admin -D "cn=admin,dc=example,dc=in" << EOF
 # LDIF file to Create user "ltratcliff" in "ou=appdev" under "dc=example,dc=in"
 dn: cn=ltratcliff,ou=devops,dc=example,dc=in
+objectClass: iNetOrgPerson
 objectClass: person
-cn: ltratcliff
-sn: Tom
+cn: Tom
+uid: larry.t.ratcliff.ctr
+givenName: Larry
+sn: Ratcliff
+mail: larry.t.ratcliff.ctr@socom.mil
 userPassword: Password1
 
 EOF
