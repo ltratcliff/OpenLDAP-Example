@@ -6,13 +6,12 @@ server = Server('localhost', get_info=ALL)
 dn = "cn=ltratcliff, ou=devops, dc=example, dc=in"
 conn = Connection(server, dn, password='Password1', auto_bind=True)
 
-who = input("Who are you looking for: ")
+#who = input("Who are you looking for: ")
 
 # Perform the search
 #conn.search('dc=devops,dc=example,dc=in', '(objectClass=person)', attributes=['*'])
 #conn.search('dc=example,dc=in', '(cn=*)', attributes=['*'])
-#conn.search('dc=example,dc=in', '(cn=ltratcliff)', attributes=['*'])
-conn.search('ou=devops,dc=example,dc=in', f'(sn={who})', attributes=['*'])
+conn.search('dc=example,dc=in', '(cn=ltratcliff)', attributes=['*'])
 
 
 # Print the results
